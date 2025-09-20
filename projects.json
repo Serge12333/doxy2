@@ -1,0 +1,9 @@
+{
+    "projects": [
+        {
+            "name": "new",
+            "autoload": true
+        }
+    ],
+    "last_opened": "new"
+}
