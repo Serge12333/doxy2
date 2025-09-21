@@ -1,0 +1,14 @@
+[
+    {
+        "name": "new_combo",
+        "type": "текст",
+        "tag_type": "список",
+        "main_keys": [
+            {
+                "key": {
+                    "sub_key": "value1 \\n is good"
+                }
+            }
+        ]
+    }
+]
