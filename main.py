@@ -58,17 +58,6 @@ def askstring_localized(title, prompt, **kwargs):
     return d.result
 
 
-def resource_path(relative_path):
-    """ Get the absolute path to a resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
-
 # Determine the base directory
 # Determine the base directory
 if getattr(sys, 'frozen', False):
@@ -609,6 +598,11 @@ def get_common_merge_data():
             else:
                 combined_value += merge_data.get(tag, tag)
         merge_data[combo['name']] = combined_value
+
+    for key, val in merge_data.items():
+        if isinstance(val, str):
+            # Replace only " \n " (space + backslash-n + space) with a real newline
+            merge_data[key] = val.replace(" \\n ", "\n")
 
     # Include numbers
 
