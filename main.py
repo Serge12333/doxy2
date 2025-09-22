@@ -2441,28 +2441,32 @@ def evaluate_condition(condition, merge_data):
     value = merge_data[tag]
     try:
         if cond_type == 'содержит':
-            return rule.lower() in value.lower()
+            return rule.lower() in str(value).lower()
         elif cond_type == 'начинается с':
-            return value.lower().startswith(rule.lower())
+            return str(value).lower().startswith(rule.lower())
         elif cond_type == 'заканчивается на':
-            return value.lower().endswith(rule.lower())
+            return str(value).lower().endswith(rule.lower())
         elif cond_type == 'больше':
-            return float(value) > float(rule)
+            # MODIFIED: Replace comma with dot for float conversion
+            return float(str(value).replace(',', '.')) > float(str(rule).replace(',', '.'))
         elif cond_type == 'меньше':
-            return float(value) < float(rule)
+            # MODIFIED: Replace comma with dot for float conversion
+            return float(str(value).replace(',', '.')) < float(str(rule).replace(',', '.'))
         elif cond_type == 'равно':
             if tag in checkbox_vars:
                 return value == rule
             else:
-                return float(value) == float(rule)
+                # MODIFIED: Replace comma with dot for float conversion
+                return float(str(value).replace(',', '.')) == float(str(rule).replace(',', '.'))
         elif cond_type == 'True':
             return value == "1"  # Checkbox check
         elif cond_type == 'False':
             return value == "0"  # Checkbox check
         else:
             return False  # Unknown condition
-    except ValueError:
-        return False  # Invalid numeric conversion
+    except (ValueError, AttributeError):
+        # Catch errors from float conversion on non-numeric text or attribute errors on non-strings
+        return False
 
 def apply_behaviors(behaviors, merge_data):
     """

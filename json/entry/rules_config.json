@@ -1,1 +1,19 @@
-[]
+[
+    {
+        "name": "new rule",
+        "conditions": [
+            {
+                "tag": "test1",
+                "condition": "равно",
+                "rule": "2"
+            }
+        ],
+        "behaviors": [
+            {
+                "tag": "new_field",
+                "condition": "CAPS",
+                "rule": ""
+            }
+        ]
+    }
+]
