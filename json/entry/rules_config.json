@@ -1,11 +1,11 @@
 [
     {
-        "name": "new rule",
+        "name": "new_rule",
         "conditions": [
             {
-                "tag": "test1",
-                "condition": "равно",
-                "rule": "2"
+                "tag": "op",
+                "condition": "меньше",
+                "rule": "4.00"
             }
         ],
         "behaviors": [
@@ -13,6 +13,11 @@
                 "tag": "new_field",
                 "condition": "CAPS",
                 "rule": ""
+            },
+            {
+                "tag": "new_field",
+                "condition": "транслит",
+                "rule": "uk"
             }
         ]
     }

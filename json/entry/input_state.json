@@ -1,6 +1,7 @@
 {
-    "new_field": "tests",
-    "test1": "2.0",
-    "test2": "3",
-    "new_combo": ""
+    "new_field": "test",
+    "test1": "3",
+    "test2": "2",
+    "new_combo": "",
+    "kio": 0
 }

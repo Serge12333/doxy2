@@ -1171,6 +1171,9 @@ def get_all_tags_for_constructor():
     combination_config = load_json(COMBINATION_CONFIG_PATH, 'combination_config')
     all_tags.extend([c['name'] for c in combination_config])
 
+    number_config = load_number_config()
+    all_tags.extend([n['name'] for n in number_config])
+
     return sorted(list(set(all_tags)))  # Return sorted unique tags
 
 # --- Constructor Window and its Helpers ---
@@ -2071,11 +2074,6 @@ def open_number_window(listbox, item_to_edit, parent_window):
             sequence = existing['sequence'][:]
 
     all_tags = list(get_all_tags_for_constructor())
-
-    numbers = load_number_config()
-    for num in numbers:
-        all_tags.append(num['name'])
-
     all_tags = sorted(all_tags)
     operators = ["+", "-", "*", "/"]
 
@@ -2641,9 +2639,7 @@ def open_create_rule_window(listbox, constructor_window):
 
     # Get all tags, sort them, and add a blank option at the start
     all_tags = list(set(get_all_tags_for_constructor()))
-    numbers = load_number_config()
-    for num in numbers:
-        all_tags.append(num['name'])
+
     sorted_tags = sorted(all_tags)
     sorted_tags.insert(0, '')
 

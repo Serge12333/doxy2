@@ -13,5 +13,10 @@
         "name": "test2",
         "type": "числа",
         "tag_type": "поле"
+    },
+    {
+        "name": "kio",
+        "type": "чекбокс",
+        "tag_type": "чекбокс"
     }
 ]
