@@ -6,7 +6,12 @@
         "main_keys": [
             {
                 "key": {
-                    "sub_key": "value1 \\n is good"
+                    "sub_key": "{test1}"
+                }
+            },
+            {
+                "key2": {
+                    "sub_key": "{test2}"
                 }
             }
         ]

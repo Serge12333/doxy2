@@ -554,22 +554,19 @@ def get_common_merge_data():
     try:
         all_tags_from_file = load_json(ALL_TAGS_OUTPUT_PATH, 'all_tags.json')
         if isinstance(all_tags_from_file, list):
-            # Filter out any potential non-string items and join them
             string_tags = [str(tag) for tag in all_tags_from_file]
             merge_data['all_tags_merge'] = ', '.join(string_tags)
         else:
-            # Failsafe in case the JSON is not a list
             merge_data['all_tags_merge'] = ''
     except Exception as e:
         print(f"Could not create 'all_tags_merge' due to an error: {e}")
         merge_data['all_tags_merge'] = ''
 
-    # Collect data from dynamically created widgets
+    # 1. Collect data from dynamically created widgets (Entry, Checkbox, etc.)
     if dynamic_frame:
         for widget in dynamic_frame.winfo_children():
             if not hasattr(widget, '_name'):
                 continue
-
             widget_name = widget._name
             if isinstance(widget, (tk.Entry, tkentrycomplete.Combobox)):
                 merge_data[widget_name] = widget.get()
@@ -578,33 +575,42 @@ def get_common_merge_data():
                 if var:
                     merge_data[widget_name] = "1" if var.get() else "0"
 
-    # Include subkeys from main_key combobox selections
+    # 2. Include raw subkeys from main_key combobox selections
     for data_dict in main_key_selections.values():
         merge_data.update(data_dict)
 
+    # 3. MOVED UP: Calculate Число (Number) tags and add them to merge_data
     numbers = load_number_config()
     for num in numbers:
         val = evaluate_number_sequence(num['sequence'], merge_data)
         merge_data[num['name']] = val
 
-    # Include combined tags
-    combination_config = load_combination_config()  # Make sure this function exists
+    # 4. MOVED UP: Calculate Сочетание (Combination) tags and add them to merge_data
+    combination_config = load_combination_config()
     for combo in combination_config:
         combined_value = ""
         for tag in combo['tags']:
-            # All tags, including 'today_tag', can now be looked up directly
             if tag == 'today_tag':
                 combined_value += datetime.now().strftime("%d.%m.%Y")
             else:
                 combined_value += merge_data.get(tag, tag)
         merge_data[combo['name']] = combined_value
 
+    # 5. NOW, PERFORM DYNAMIC SUBKEY REPLACEMENT
+    # This block now runs AFTER numbers and combinations are calculated and in merge_data.
+    for main_key, sub_dict in main_key_selections.items():
+        for subkey, value in sub_dict.items():
+            if isinstance(value, str) and value.startswith('{') and value.endswith('}'):
+                referenced_tag_name = value[1:-1]
+                if referenced_tag_name in merge_data:
+                    new_value = merge_data[referenced_tag_name]
+                    sub_dict[subkey] = new_value
+                    merge_data[subkey] = new_value
+
+    # 6. Final formatting
     for key, val in merge_data.items():
         if isinstance(val, str):
-            # Replace only " \n " (space + backslash-n + space) with a real newline
             merge_data[key] = val.replace(" \\n ", "\n")
-
-    # Include numbers
 
     return merge_data
 
