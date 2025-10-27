@@ -3272,7 +3272,8 @@ def start_main_window():
     # Create a single Tkinter window instance
     window = tk.Tk()
     window.title("Doxy v2.1")
-    window.resizable(False, False)
+    # 1. CHANGE: Allow resizing so scrollbars can be useful
+    window.resizable(True, True)
     window.protocol("WM_DELETE_WINDOW", on_closing)
 
     # Set main window icon
@@ -3283,22 +3284,60 @@ def start_main_window():
 
     # Apply icon automatically to all Toplevel windows
     _original_toplevel_init = tk.Toplevel.__init__
+
     def _custom_toplevel_init(self, *args, **kwargs):
         _original_toplevel_init(self, *args, **kwargs)
         try:
             self.iconbitmap(ICON_PATH)
         except tk.TclError:
             pass
+
     tk.Toplevel.__init__ = _custom_toplevel_init
 
-    # --- Main layout frames ---
-    dynamic_frame = tk.Frame(window, padx=10, pady=10)
-    dynamic_frame.pack(fill="both", expand=True)
+    # --- Main layout frames (REPLACED WITH SCROLLABLE CONTENT) ---
+
+    # Container frame to hold the canvas and scrollbars
+    content_container = tk.Frame(window)
+    content_container.pack(fill="both", expand=True)
+
+    # Vertical Scrollbar
+    v_scroll = ttk.Scrollbar(content_container, orient="vertical")
+    v_scroll.pack(side="right", fill="y")
+
+    # Horizontal Scrollbar
+    h_scroll = ttk.Scrollbar(content_container, orient="horizontal")
+    h_scroll.pack(side="bottom", fill="x")
+
+    # Canvas (The viewport)
+    canvas = tk.Canvas(content_container, yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
+    canvas.pack(side="left", fill="both", expand=True)
+
+    # Link scrollbars to canvas
+    v_scroll.config(command=canvas.yview)
+    h_scroll.config(command=canvas.xview)
+
+    # Create the dynamic_frame INSIDE the canvas
+    dynamic_frame = tk.Frame(canvas, padx=10, pady=10)
+    canvas.create_window((0, 0), window=dynamic_frame, anchor="nw")
+
+    # Critical: Update scroll region whenever dynamic_frame changes size (i.e., tags are added)
+    def on_frame_configure(event):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    dynamic_frame.bind("<Configure>", on_frame_configure)
+
+    # Optional: Enable mouse wheel scrolling
+    if sys.platform.startswith('win') or sys.platform.startswith('darwin'):
+        canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"))
+    elif sys.platform.startswith('linux'):
+        canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
+        canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
 
     ttk.Separator(window, orient='horizontal').pack(fill='x', pady=5)
 
     bottom_frame = tk.Frame(window)
-    bottom_frame.pack(fill="x", padx=10, pady=(0, 10))
+    # 2. CHANGE: Anchor the bottom frame to the bottom
+    bottom_frame.pack(fill="x", padx=10, pady=(0, 10), side=BOTTOM)
 
     # --- Bottom Buttons ---
     constructor_button = ttk.Button(bottom_frame, text="Конструктор", command=open_constructor_window)

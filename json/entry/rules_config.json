@@ -1,24 +1,7 @@
 [
     {
         "name": "new_rule",
-        "conditions": [
-            {
-                "tag": "op",
-                "condition": "меньше",
-                "rule": "4.00"
-            }
-        ],
-        "behaviors": [
-            {
-                "tag": "new_field",
-                "condition": "CAPS",
-                "rule": ""
-            },
-            {
-                "tag": "new_field",
-                "condition": "транслит",
-                "rule": "uk"
-            }
-        ]
+        "conditions": [],
+        "behaviors": []
     }
 ]
