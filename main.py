@@ -20,6 +20,7 @@ import uuid
 from decimal import Decimal, getcontext
 from num2words import num2words
 import numpy as np
+from collections import defaultdict
 
 
 # --- Globals ---
@@ -1457,7 +1458,7 @@ def open_checkbox_window(listbox, item_to_edit, parent_window):
 
 # --- REPLACE THE OLD open_list_window FUNCTION WITH THIS ---
 
-def open_list_window(listbox, item_to_edit, parent_window):
+def open_list_window(listbox, item_to_edit, parent_window,constructor_listbox_ref=None):
     """
     Full implementation for CREATING and EDITING lists.
     Now for 'список' type in edit mode, uses a main key selector instead of showing all main keys at once.
@@ -1775,38 +1776,144 @@ def open_list_window(listbox, item_to_edit, parent_window):
         list_window.destroy()
 
     def import_from_excel():
-        # Determine the base directory
+        """
+        Handles import. If Main Key is NOT checked, runs batch import for ALL regular comboboxes
+        from import_reg.xlsx. If Main Key IS checked, runs import for the specific main key list
+        from import.xlsx.
+        """
+        global window
 
-        import_path = os.path.join(IMPORT_FLD, "import.xlsx")
-
-        if not os.path.exists(import_path):
-            messagebox.showwarning("Ошибка", f"Файл {import_path} не найден", parent=list_window)
-            return
-        if not name_var.get().strip():
-            messagebox.showwarning("Ошибка", "Введите имя списка перед импортом", parent=list_window)
-            return
-        try:
-            wb = openpyxl.load_workbook(import_path)
-            sheet = wb.active
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось открыть файл {import_path}. Ошибка: {str(e)}",
-                                 parent=list_window)
-            return
+        # --- NEW LOGIC FOR REGULAR COMBOBOX (Main Key NOT selected) ---
         if not main_key_var.get():
-            values = [str(row[0]).strip() for row in sheet.iter_rows(min_row=1, values_only=True) if
-                      row and row[0] is not None]
-            if not values:
-                messagebox.showwarning("Ошибка", "В файле не найдено данных для импорта.", parent=list_window)
+            xlsx_path = os.path.join(IMPORT_FLD, "import_reg.xlsx")
+            xls_path = os.path.join(IMPORT_FLD, "import_reg.xls")
+
+            if os.path.exists(xlsx_path):
+                file_path = xlsx_path
+            elif os.path.exists(xls_path):
+                file_path = xls_path
+            else:
+                messagebox.showwarning("Ошибка", f"Файл 'import_reg.xlsx' (или .xls) не найден в папке import_fld",
+                                       parent=list_window)
                 return
-            if messagebox.askyesno("Подтверждение импорта",
-                                   f"Найдено {len(values)} значений для импорта.\n\n"
-                                   "Это окно будет закрыто, и все текущие данные будут перезаписаны.\n"
-                                   "Продолжить?",
-                                   parent=list_window):
-                sets_list[0]['widget_ref'].delete('1.0', END)
-                sets_list[0]['widget_ref'].insert('1.0', '\n'.join(values))
-                save_combobox()
+
+            # 1. Confirmation
+            if not messagebox.askyesno("Подтверждение импорта (Списки)",
+                                       f"Обнаружен файл '{os.path.basename(file_path)}'.\n"
+                                       "Запустить БАТЧ-импорт: все комбобоксы и их значения будут созданы/обновлены в конфигурации.\n"
+                                       "Продолжить?",
+                                       parent=list_window):
+                return
+
+            try:
+                # 2. Load Excel file and parse data
+                wb = openpyxl.load_workbook(file_path)
+                sheet = wb.active
+
+                if sheet.max_column < 2:
+                    messagebox.showerror("Ошибка",
+                                         "Ошибка: Файл 'import_reg' должен содержать 2 столбца (имя, значение).",
+                                         parent=list_window)
+                    return
+
+                combos_to_import = defaultdict(set)
+                rows_processed = 0
+                current_name = ""
+                for row in sheet.iter_rows(min_row=1, values_only=True):
+                    combo_name_val = str(row[0]).strip() if row[0] is not None else ""
+                    combo_value = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+
+                    if combo_name_val:
+                        current_name = combo_name_val
+
+                    if current_name and combo_value:
+                        combos_to_import[current_name].add(combo_value)
+                        rows_processed += 1
+
+                if not combos_to_import:
+                    messagebox.showinfo("Импорт (Списки)", "Не найдено допустимых строк (имя, значение) для импорта.",
+                                        parent=list_window)
+                    return
+
+                # 3. Load existing config and merge
+                combobox_regular_config = load_json(COMBOBOX_REGULAR_PATH, [])
+                existing_combos_lookup = {c['name']: c for c in combobox_regular_config}
+
+                created_count = 0
+                updated_count = 0
+                total_values_added = 0
+
+                # 4. Merge/Create
+                for name, new_values_set in combos_to_import.items():
+                    if name in existing_combos_lookup:
+                        # --- UPDATE EXISTING ---
+                        existing_entry = existing_combos_lookup[name]
+                        if 'values' not in existing_entry or not isinstance(existing_entry['values'], list):
+                            existing_entry['values'] = []
+
+                        existing_values_set = set(existing_entry['values'])
+                        newly_added_values = new_values_set - existing_values_set
+
+                        if newly_added_values:
+                            existing_values_set.update(newly_added_values)
+                            existing_entry['values'] = sorted(list(existing_values_set))
+                            updated_count += 1
+                            total_values_added += len(newly_added_values)
+
+                    else:
+                        # --- CREATE NEW ---
+                        new_entry = {
+                            "name": name,
+                            "type": "текст",
+                            "tag_type": "комбобокс",
+                            "values": sorted(list(new_values_set))
+                        }
+                        combobox_regular_config.append(new_entry)
+                        created_count += 1
+                        total_values_added += len(new_values_set)
+
+                # 5. Save and refresh
+                if created_count > 0 or updated_count > 0:
+                    save_json(COMBOBOX_REGULAR_PATH, combobox_regular_config)
+
+                # FIX: Use the listbox reference passed to the outer function (constructor_listbox_ref)
+                # If your 'open_list_window' function doesn't take this argument, you should change
+                # this line to refresh_all_windows() to force a full refresh.
+                refresh_all_windows(constructor_listbox_ref)
+
+                messagebox.showinfo(
+                    "Импорт завершен",
+                    f"Новых списков создано: {created_count}\n"
+                    f"Существующих обновлено: {updated_count}\n"
+                    f"Всего значений добавлено: {total_values_added}",
+                    parent=list_window
+                )
+
+                list_window.destroy()  # Close the current list creation window
+                return
+
+            except Exception as e:
+                messagebox.showerror("Ошибка", f"Произошла непредвиденная ошибка во время импорта: {str(e)}",
+                                     parent=list_window)
+                print(f"Combobox batch import error: {str(e)}")
+                return
+
+        # --- OLD LOGIC FOR MAIN-KEY COMBOBOX (Main Key IS selected) ---
         else:
+            import_path = os.path.join(IMPORT_FLD, "import.xlsx")
+
+            if not os.path.exists(import_path):
+                messagebox.showwarning("Ошибка", f"Файл {import_path} не найден", parent=list_window)
+                return
+
+            try:
+                wb = openpyxl.load_workbook(import_path)
+                sheet = wb.active
+            except Exception as e:
+                messagebox.showerror("Ошибка", f"Не удалось открыть файл {import_path}. Ошибка: {str(e)}",
+                                     parent=list_window)
+                return
+
             main_keys_data = {}
             current_main_key = None
             for i, row in enumerate(sheet.iter_rows(min_row=1, values_only=True), 1):
