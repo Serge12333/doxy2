@@ -1,1 +1,30 @@
-[]
+[
+    {
+        "name": "country",
+        "type": "текст",
+        "tag_type": "комбобокс",
+        "values": [
+            "england",
+            "russia",
+            "usa"
+        ]
+    },
+    {
+        "name": "town",
+        "type": "текст",
+        "tag_type": "комбобокс",
+        "values": [
+            "kyiv",
+            "moscow"
+        ]
+    },
+    {
+        "name": "village",
+        "type": "текст",
+        "tag_type": "комбобокс",
+        "values": [
+            "kukuevo",
+            "perdiavesk"
+        ]
+    }
+]

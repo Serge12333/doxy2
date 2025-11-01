@@ -1879,7 +1879,34 @@ def open_list_window(listbox, item_to_edit, parent_window,constructor_listbox_re
                 # FIX: Use the listbox reference passed to the outer function (constructor_listbox_ref)
                 # If your 'open_list_window' function doesn't take this argument, you should change
                 # this line to refresh_all_windows() to force a full refresh.
-                refresh_all_windows(constructor_listbox_ref)
+                constructor_treeview = None
+                for child in window.winfo_children():
+                    if isinstance(child, tk.Toplevel) and child.title() == "Конструктор":
+                        for w in child.winfo_children():
+                            if isinstance(w, ttk.Notebook):
+                                tags_tab = w.winfo_children()[0]
+                                for sub in tags_tab.winfo_children():
+                                    for deep in sub.winfo_children():
+                                        if isinstance(deep, ttk.Treeview):
+                                            constructor_treeview = deep
+                                            break
+
+                # If found, refresh both main window and constructor immediately
+                if constructor_treeview:
+                    refresh_all_windows(constructor_treeview)
+                    try:
+                        constructor_treeview.update_idletasks()
+                    except Exception:
+                        pass
+                else:
+                    # Fallback if constructor is closed
+                    refresh_all_windows(None)
+
+                # Ensure GUI redraws immediately
+                try:
+                    window.update_idletasks()
+                except Exception:
+                    pass
 
                 messagebox.showinfo(
                     "Импорт завершен",
